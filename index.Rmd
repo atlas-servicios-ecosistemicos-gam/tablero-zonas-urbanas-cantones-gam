@@ -21,7 +21,13 @@ library(stringi)
 
 ```
 
-Row {data-height=650}
+
+Row {data-height=10}
+-----------------------------------------------------------------------
+### **Fuente: Imágenes del sensor Sentinel 2B (Agencia Espacial Europea)**
+
+
+Row {data-height=640}
 -----------------------------------------------------------------------
 
 ### {data-width=600}
@@ -175,6 +181,7 @@ DT::datatable(
 )
 
 ```
+
 
 Row {data-height=350}
 -----------------------------------------------------------------------
