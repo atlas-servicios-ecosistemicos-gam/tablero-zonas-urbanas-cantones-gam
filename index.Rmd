@@ -1,0 +1,253 @@
+---
+title: "Zonas urbanas continuas y discontinuas por cantón en la Gran Área Metropolitana"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+---
+
+```{r setup, include=FALSE}
+#-------------------- Paquetes --------------------
+
+library(flexdashboard)
+library(dplyr)
+library(sf)
+library(leaflet)
+library(leafem)
+library(esri2sf)
+library(raster)
+library(DT)
+
+library(stringi)
+
+```
+
+Row {data-height=650}
+-----------------------------------------------------------------------
+
+### {data-width=600}
+```{r include=FALSE}
+
+#--------- URL de geoservicios y datos ------------
+
+url_agfs_limite_gam <-
+  "https://services9.arcgis.com/RrvMEynxDB8hycVO/arcgis/rest/services/gam_limite_gam/FeatureServer/0"
+
+url_agfs_metricas_cantones <-
+  "https://services9.arcgis.com/RrvMEynxDB8hycVO/arcgis/rest/services/gam_cantones_gam_metricas_se/FeatureServer/0"
+
+#--------------- Objetos sf --------------
+
+# Límite de la GAM
+sf_limite_gam <- 
+  esri2sf(url_agfs_limite_gam)
+
+# Límite de la GAM (reproyectada a Web Mercator)
+sf_limite_gam_web <- 
+  sf_limite_gam %>%
+  st_transform(3857)
+
+# Métricas de cantones
+sf_metricas_cantones <- 
+  esri2sf(url_agfs_metricas_cantones)
+
+#---------------- Paletas de colores ---------------
+
+# Métrica
+bins_metrica <- c(0, 10, 20, 31, 52, Inf)
+
+etiquetas_metrica <- c("<10", ">10-20", ">20-31", ">31-52", ">52")
+
+pal_metrica <- 
+  colorBin(
+    bins = bins_metrica,
+    palette = c("Yellow", "Brown")
+  )
+
+```
+
+```{r}
+
+#------------------- Mapa ------------------
+
+leaflet() %>%
+  addProviderTiles(providers$OpenStreetMap.Mapnik, group = "OpenStreetMap") %>%
+  addProviderTiles(providers$Stamen.TonerLite, group = "Stamen Toner Lite") %>%
+  addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB Dark Matter") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = "Imágenes de ESRI") %>%
+  addPolygons(
+    data = sf_limite_gam,
+    color = "Purple",
+    fillColor = "transparent",
+    stroke = TRUE,
+    weight = 6.0,
+    group = "Límite de la GAM"
+  ) %>%
+  addPolygons(
+    data = sf_metricas_cantones,
+    fillOpacity = 0.7,
+    stroke = TRUE,
+    color = "Black",
+    fillColor = ~pal_metrica(zonas_urb),
+    weight = 1,
+    popup = paste(paste("<strong>Cantón:</strong>",  sf_metricas_cantones$canton), 
+                  paste("<strong>Cobertura:</strong>", sf_metricas_cantones$zonas_urb, "%"), 
+                  sep = '<br/>'
+                  ),
+    label = paste(paste("Cantón:",  sf_metricas_cantones$canton), 
+                  paste("Cobertura:", sf_metricas_cantones$zonas_urb, "%"), 
+                  sep = ' - '
+                  ),
+    group = "Zonas urbanas"
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    pal = pal_metrica,
+    values = sf_metricas_cantones$zonas_urb,
+    labFormat = function(type, cuts, p) {paste0(etiquetas_metrica)},
+    group = "Zonas urbanas",
+    title = "% de cobertura de zonas urbanas"
+  ) %>% 
+  addLayersControl(
+    baseGroups = c("OpenStreetMap", "Stamen Toner Lite", "CartoDB Dark Matter", "Imágenes de ESRI"),
+    overlayGroups = c("Límite de la GAM", "Zonas urbanas"),
+    options = layersControlOptions(collapsed = TRUE)    
+  ) %>%  
+  addScaleBar(
+    position = "bottomleft",
+    options = scaleBarOptions(imperial = FALSE)
+  ) %>%
+  addMouseCoordinates()
+```
+
+### San José {data-width=200}
+```{r}
+
+# Vector de nombres de cantones
+cantones <- 
+  c("Alajuelita", "Aserrí", "Coronado", "Curridabat",
+    "Desamparados", "Escazú", "Goicochea", "Montes de Oca",
+    "Mora", "Moravia", "San José", "Santa Ana",
+    "Tibás")
+
+# Vector de coberturas
+coberturas <- 
+  c(28.1, 14.3, 16.9, 68.5, 29, 38.3, 38.2, 51.9, 7, 30.7, 84.3, 26, 86.5)
+
+cantones_cobertura <- 
+  data.frame(
+    canton = cantones, 
+    cobertura = coberturas
+  )
+
+cantones_cobertura %>%
+DT::datatable(
+  colnames = c("Cantón", "% de cobertura"),
+  rownames = FALSE,
+  options = list(pageLength = 15, dom = 't')
+)
+
+```
+
+### Heredia {data-width=200}
+```{r}
+
+# Vector de nombres cantones
+cantones <- 
+  c("Barva", "Belén", "Flores", "Heredia",
+    "San Isidro", "San Pablo", "San Rafael", "Santa Barbára",
+    "Santo Domingo")
+
+# Vector de coberturas
+coberturas <- 
+  c(10.2, 61.1, 64.6, 71.7, 18.2, 52.3, 12.9, 10.4, 39.9)
+
+cantones_cobertura <- 
+  data.frame(
+    canton = cantones, 
+    cobertura = coberturas
+  )
+
+cantones_cobertura %>%
+DT::datatable(
+  colnames = c("Cantón", "% de cobertura"),
+  rownames = FALSE,
+  options = list(dom = 't')
+)
+
+```
+
+Row {data-height=350}
+-----------------------------------------------------------------------
+
+### Cobertura mínima {.value-box} {data-width=200}
+```{r}
+valueBox(value = "Paraíso: 6.9 %", 
+  caption = "Cobertura mínima"
+)
+```
+
+### Cobertura máxima {.value-box} {data-width=200}
+```{r}
+valueBox(value = "Tibás: 86.5 %", 
+  caption = "Cobertura máxima"
+)
+```
+
+### Cobertura promedio {.value-box} {data-width=200}
+```{r}
+valueBox(value = "31.8 %", 
+  caption = "Cobertura promedio de la GAM"
+)
+```
+
+### Cartago {data-width=200}
+```{r}
+
+# Vector de nombres de cantones
+cantones <- 
+  c("Alvarado", "Cartago", "El Guarco", "La Unión", "Oreamuno", "Paraíso")
+
+# Vector de coberturas
+coberturas <- 
+  c(7.5, 15.4, 8.2, 27.9, 9.6, 6.9)
+
+cantones_cobertura <- 
+  data.frame(
+    canton = cantones, 
+    cobertura = coberturas
+  )
+
+cantones_cobertura %>%
+DT::datatable(
+  colnames = c("Cantón", "% de cobertura"),
+  rownames = FALSE,
+  options = list(dom = 't')
+)
+
+```
+
+### Alajuela {data-width=200}
+```{r}
+
+# Vector de nombres cantones
+cantones <- 
+  c("Alajuela", "Atenas", "Poás")
+
+# Vector de coberturas
+coberturas <- 
+  c(28.8, 12.8, 9.1)
+
+cantones_cobertura <- 
+  data.frame(
+    canton = cantones, 
+    cobertura = coberturas
+  )
+
+cantones_cobertura %>%
+DT::datatable(
+  colnames = c("Cantón", "% de cobertura"),
+  rownames = FALSE,
+  options = list(dom = 't')
+)
+
+```
