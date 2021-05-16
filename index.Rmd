@@ -12,6 +12,7 @@ library(flexdashboard)
 library(dplyr)
 library(sf)
 library(leaflet)
+library(leaflet.extras)
 library(leafem)
 library(esri2sf)
 library(raster)
@@ -122,7 +123,9 @@ leaflet() %>%
     position = "bottomleft",
     options = scaleBarOptions(imperial = FALSE)
   ) %>%
-  addMouseCoordinates()
+  addMouseCoordinates() %>%
+  addSearchOSM() %>%
+  addResetMapButton()
 ```
 
 ### San José {data-width=200}
